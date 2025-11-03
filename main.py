@@ -1,6 +1,6 @@
 import streamlit as st
 import os 
-from src.utils import load_model, apply_skill, apply_skills, convert_newlines
+from src.utils import load_model, apply_skill, apply_skills, convert_newlines, fetch_available_models
 from src.prompts import insert
 
 
@@ -120,10 +120,28 @@ with col2:
 
     st.text("")
 
+    # Fetch available models dynamically with caching
+    @st.cache_data(ttl=3600)  # Cache for 1 hour
+    def get_cached_models(api_key):
+        """Cache the model list to avoid fetching on every rerun"""
+        return fetch_available_models(api_key) if api_key else None
+    
+    if OPENAI_API_KEY:
+        try:
+            available_models = get_cached_models(OPENAI_API_KEY)
+            if not available_models:
+                available_models = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"]
+        except Exception as e:
+            st.warning(f"Could not fetch models: {e}. Using default models.")
+            available_models = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"]
+    else:
+        available_models = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"]
+
     model_name = st.selectbox("**Select the model**", 
-                              ("gpt-4o", "chatgpt-4o-latest", "gpt-4o-mini", "gpt-4-turbo", "gpt-4-0125-preview"), 
-                              index=0, 
-                              placeholder="Select the model...")
+                              available_models, 
+                              index=0 if available_models else None, 
+                              placeholder="Select the model...",
+                              disabled=not OPENAI_API_KEY)
 
     st.text("") 
 

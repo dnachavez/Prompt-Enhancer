@@ -2,7 +2,26 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain_core.prompts import PromptTemplate
 import os 
+import openai
 from src.prompts import templates
+
+
+def fetch_available_models(api_key):
+    """Fetch all available models for the given API key"""
+    try:
+        openai.api_key = api_key
+        models_response = openai.Model.list()
+        # Extract model IDs from the response (dict format for openai 0.28.0)
+        model_ids = [model['id'] for model in models_response['data']]
+        # Filter to only include chat models (gpt-* models)
+        chat_models = [model_id for model_id in model_ids if 'gpt' in model_id.lower() or 'chat' in model_id.lower()]
+        # Sort models with most recent/popular first
+        chat_models.sort(reverse=True)
+        return chat_models
+    except Exception as e:
+        # If there's an error, return a default list as fallback
+        print(f"Error fetching models: {e}")
+        return ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"]
 
 
 def load_model(model_name):
